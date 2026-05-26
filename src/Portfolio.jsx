@@ -14,8 +14,15 @@ function LinkedInMark({ size = 20, className = '' }) {
   );
 }
 
+function getModeFromUrl() {
+  if (typeof window === 'undefined') return 'developer';
+
+  const urlMode = new URLSearchParams(window.location.search).get('mode');
+  return urlMode === 'editor' ? 'editor' : 'developer';
+}
+
 export default function Portfolio() {
-  const [mode, setMode] = useState('developer'); // 'developer' | 'editor'
+  const [mode, setMode] = useState(getModeFromUrl); // 'developer' | 'editor'
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
   const containerRef = useRef(null);
@@ -28,7 +35,25 @@ export default function Portfolio() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      setMode(getModeFromUrl());
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const isDev = mode === 'developer';
+
+  const handleModeChange = (nextMode) => (event) => {
+    event.preventDefault();
+    setMode(nextMode);
+
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.set('mode', nextMode);
+    window.history.pushState({}, '', `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+  };
 
   return (
     <div
@@ -89,22 +114,26 @@ export default function Portfolio() {
             }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           />
-          <button
-            onClick={() => setMode('developer')}
+          <a
+            href="?mode=developer"
+            onClick={handleModeChange('developer')}
+            aria-current={isDev ? 'page' : undefined}
             className={`relative z-10 px-5 py-2 text-xs tracking-[0.2em] uppercase font-medium transition-colors duration-300 flex items-center gap-2 ${isDev ? 'text-white' : 'text-black'
               }`}
           >
             <Code2 size={12} />
             Dev
-          </button>
-          <button
-            onClick={() => setMode('editor')}
+          </a>
+          <a
+            href="?mode=editor"
+            onClick={handleModeChange('editor')}
+            aria-current={!isDev ? 'page' : undefined}
             className={`relative z-10 px-5 py-2 text-xs tracking-[0.2em] uppercase font-medium transition-colors duration-300 flex items-center gap-2 ${!isDev ? 'text-white' : 'text-black'
               }`}
           >
             <Film size={12} />
             Editor
-          </button>
+          </a>
         </div>
 
         <div className="text-xs tracking-[0.3em] uppercase font-medium hidden md:block">
